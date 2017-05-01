@@ -4,10 +4,17 @@ A very simple dynamic image server by java, support zoom operation.
 ## Requirements
 The only requirement is Java 8.
 
+## Build
+```
+mvn package
+```
+
 ## Run
 ```
 java -Dimage_server.storage_path=/path/to/original_images -Dimage_server.zoom_path=/path/to/zoomed_images image-server-x.y.z.jar
 ```
+
+## Use it
 Then, access [http://localhost:8080/upload](http://localhost:8080/upload) try to upload a image, it will give you a fileId.
 
 You can use this fileId to access image.
