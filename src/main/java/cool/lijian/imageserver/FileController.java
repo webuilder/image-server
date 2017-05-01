@@ -145,7 +145,8 @@ public class FileController {
 				parentDir.mkdirs();
 			}
 			file.transferTo(savedFile);
-			return fileId;
+			String html = "FileId is <a href='/" + fileId + "'>" + fileId + "</a>";
+			return html;
 		}
 		return "";
 	}
