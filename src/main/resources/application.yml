@@ -1,0 +1,12 @@
+
+image_server:
+  storage_path: ${user.home}/files/storage
+  zoom_path: ${user.home}/files/zoom
+
+multipart:
+  maxFileSize: -1
+  maxRequestSize: -1
+spring:
+  http:
+    multipart:
+      max-file-size: -1
