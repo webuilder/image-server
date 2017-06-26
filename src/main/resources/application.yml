@@ -2,6 +2,7 @@
 image_server:
   storage_path: ${user.home}/files/storage
   zoom_path: ${user.home}/files/zoom
+  index: index.html
 
 multipart:
   maxFileSize: -1

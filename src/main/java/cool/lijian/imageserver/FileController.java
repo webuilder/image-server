@@ -60,6 +60,10 @@ public class FileController {
 	@RequestMapping("/**")
 	public void image(HttpServletRequest request, HttpServletResponse response) throws Exception {
 		String fileId = request.getServletPath();
+		if ("/".equals(fileId)) {
+			showIndex(response);
+			return;
+		}
 		if (fileId.charAt(0) == '/') {
 			fileId = fileId.substring(1);
 		}
@@ -149,5 +153,14 @@ public class FileController {
 			return html;
 		}
 		return "";
+	}
+
+	@Value("${image_server.index}")
+	private String indexPage;
+
+	private void showIndex(HttpServletResponse response) throws Exception {
+		InputStream in = getClass().getClassLoader().getResourceAsStream(indexPage);
+		OutputStream out = response.getOutputStream();
+		IOUtils.copy(in, out);
 	}
 }
