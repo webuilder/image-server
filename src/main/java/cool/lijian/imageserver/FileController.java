@@ -137,8 +137,8 @@ public class FileController {
 		return new String(baos.toByteArray(), Charset.forName("utf-8"));
 	}
 
-	@RequestMapping(value = "/upload", method = RequestMethod.POST)
-	public @ResponseBody String upload(@RequestParam("file") MultipartFile file) throws Exception {
+	@RequestMapping(value = "/upload_api", method = RequestMethod.POST)
+	public @ResponseBody String uploadApi(@RequestParam("file") MultipartFile file) throws Exception {
 		if (!file.isEmpty()) {
 			byte[] bytes = file.getBytes();
 			String originalFileName = file.getOriginalFilename();
@@ -149,6 +149,15 @@ public class FileController {
 				parentDir.mkdirs();
 			}
 			file.transferTo(savedFile);
+			return fileId;
+		}
+		return "";
+	}
+
+	@RequestMapping(value = "/upload", method = RequestMethod.POST)
+	public @ResponseBody String upload(@RequestParam("file") MultipartFile file) throws Exception {
+		if (!file.isEmpty()) {
+			String fileId = uploadApi(file);
 			String html = "FileId is <a href='/" + fileId + "'>" + fileId + "</a>";
 			return html;
 		}
