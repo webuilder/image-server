@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -53,6 +54,13 @@ public class FileController {
 
 	@Value("${image_server.zoom_path}")
 	private String zoomPath;
+
+	/** 是否允许指定文件名<br>
+	 * 如果为true，并且request的参数中包含filename字段，那么就用filename作为上传后的文件名;
+	 * 否则就是用NamingStrategy生成文件名
+	 */
+	@Value("${image_server.enable_filename}")
+	private boolean enableFilename;
 
 	@Autowired
 	private ZoomService zoomService;
@@ -138,11 +146,18 @@ public class FileController {
 	}
 
 	@RequestMapping(value = "/upload_api", method = RequestMethod.POST)
-	public @ResponseBody String uploadApi(@RequestParam("file") MultipartFile file) throws Exception {
+	public @ResponseBody String uploadApi(@RequestParam("file") MultipartFile file,
+			@RequestParam(value = "filename", required = false) String filename) throws Exception {
 		if (!file.isEmpty()) {
 			byte[] bytes = file.getBytes();
 			String originalFileName = file.getOriginalFilename();
-			String fileId = namingStrategy.createFileId(bytes, originalFileName);
+			String fileId;
+			if (enableFilename && !StringUtils.isEmpty(filename)) {
+				fileId = filename;
+			} else {
+				fileId = namingStrategy.createFileId(bytes, originalFileName);
+			}
+
 			File savedFile = new File(storagePath, fileId);
 			File parentDir = savedFile.getParentFile();
 			if (!parentDir.exists()) {
@@ -155,10 +170,11 @@ public class FileController {
 	}
 
 	@RequestMapping(value = "/upload", method = RequestMethod.POST)
-	public @ResponseBody String upload(@RequestParam("file") MultipartFile file, HttpServletRequest req)
+	public @ResponseBody String upload(@RequestParam("file") MultipartFile file,
+			@RequestParam(value = "filename", required = false) String filename, HttpServletRequest req)
 			throws Exception {
 		if (!file.isEmpty()) {
-			String fileId = uploadApi(file);
+			String fileId = uploadApi(file, filename);
 			String contextPath = req.getContextPath();
 			String html = "FileId is <a href='" + contextPath + "/" + fileId + "'>" + fileId + "</a>";
 			return html;
