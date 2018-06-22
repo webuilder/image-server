@@ -155,10 +155,12 @@ public class FileController {
 	}
 
 	@RequestMapping(value = "/upload", method = RequestMethod.POST)
-	public @ResponseBody String upload(@RequestParam("file") MultipartFile file) throws Exception {
+	public @ResponseBody String upload(@RequestParam("file") MultipartFile file, HttpServletRequest req)
+			throws Exception {
 		if (!file.isEmpty()) {
 			String fileId = uploadApi(file);
-			String html = "FileId is <a href='/" + fileId + "'>" + fileId + "</a>";
+			String contextPath = req.getContextPath();
+			String html = "FileId is <a href='" + contextPath + "/" + fileId + "'>" + fileId + "</a>";
 			return html;
 		}
 		return "";
