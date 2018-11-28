@@ -2,20 +2,17 @@ package cool.lijian.imageserver;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 
+import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.stereotype.Controller;
@@ -43,27 +40,20 @@ public class FileController {
 		SpringApplication.run(FileController.class, args);
 	}
 
-	@Autowired
+	@Resource
 	private MultipartResolver multipartResolver;
 
-	@Autowired
-	private NamingStrategy namingStrategy;
+	@Resource
+	private ImageServerProperties props;
 
-	@Value("${image_server.storage_path}")
-	private String storagePath;
-
-	@Value("${image_server.zoom_path}")
-	private String zoomPath;
-
-	/** 是否允许指定文件名<br>
-	 * 如果为true，并且request的参数中包含filename字段，那么就用filename作为上传后的文件名;
-	 * 否则就是用NamingStrategy生成文件名
-	 */
-	@Value("${image_server.enable_filename}")
-	private boolean enableFilename;
-
-	@Autowired
+	@Resource
 	private ZoomService zoomService;
+
+	@Resource
+	private MasterService masterService;
+
+	@Resource
+	private ThumbnailService thumbnailService;
 
 	@RequestMapping("/**")
 	public void image(HttpServletRequest request, HttpServletResponse response) throws Exception {
@@ -81,8 +71,7 @@ public class FileController {
 			return;
 		}
 
-		File file = new File(storagePath, fileId);
-		if (!file.exists()) {
+		if (!masterService.exists(fileId)) {
 			logger.debug("<{}> not exist.", fileId);
 			response.sendError(HttpServletResponse.SC_NOT_FOUND);
 			return;
@@ -96,7 +85,7 @@ public class FileController {
 			// Read orginal file
 			logger.debug("read file <{}>", fileId);
 			OutputStream out = response.getOutputStream();
-			try (InputStream in = new BufferedInputStream(new FileInputStream(file))) {
+			try (InputStream in = new BufferedInputStream(masterService.loadFile(fileId))) {
 				IOUtils.copy(in, out);
 			}
 		} else {
@@ -120,8 +109,7 @@ public class FileController {
 				return;
 			}
 			String zoomedFileId = zoomService.zoom(fileId, zm, width, height);
-			File zoomedFile = new File(zoomPath, zoomedFileId);
-			if (!zoomedFile.exists()) {
+			if (!thumbnailService.exists(zoomedFileId)) {
 				logger.debug("zoomed file <{}> not exist.", fileId);
 				response.sendError(HttpServletResponse.SC_NOT_FOUND);
 				return;
@@ -129,7 +117,7 @@ public class FileController {
 
 			logger.debug("read zoomed file <{}>", fileId);
 			OutputStream out = response.getOutputStream();
-			try (InputStream in = new BufferedInputStream(new FileInputStream(zoomedFile))) {
+			try (InputStream in = new BufferedInputStream(thumbnailService.loadFile(zoomedFileId))) {
 				IOUtils.copy(in, out);
 			}
 		}
@@ -141,7 +129,6 @@ public class FileController {
 		try (InputStream in = FileController.class.getClassLoader().getResourceAsStream("upload_form.html");) {
 			IOUtils.copy(in, baos);
 		}
-		System.out.println(multipartResolver);
 		return new String(baos.toByteArray(), Charset.forName("utf-8"));
 	}
 
@@ -152,18 +139,16 @@ public class FileController {
 			byte[] bytes = file.getBytes();
 			String originalFileName = file.getOriginalFilename();
 			String fileId;
-			if (enableFilename && !StringUtils.isEmpty(filename)) {
-				fileId = filename;
-			} else {
-				fileId = namingStrategy.createFileId(bytes, originalFileName);
-			}
-
-			File savedFile = new File(storagePath, fileId);
-			File parentDir = savedFile.getParentFile();
-			if (!parentDir.exists()) {
-				parentDir.mkdirs();
-			}
-			file.transferTo(savedFile);
+//			if (props.isEnableFilename() && !StringUtils.isEmpty(filename)) {
+//				fileId = filename;
+//			} else {
+//				fileId = namingStrategy.createFileId(bytes, originalFileName);
+//			}
+//
+//			try (OutputStream out = masterService.saveFile(fileId); InputStream in = file.getInputStream()) {
+//				IOUtils.copy(in, out);
+//			}
+			fileId = masterService.saveFile(bytes, originalFileName);
 			return fileId;
 		}
 		return "";
@@ -182,11 +167,8 @@ public class FileController {
 		return "";
 	}
 
-	@Value("${image_server.index}")
-	private String indexPage;
-
 	private void showIndex(HttpServletResponse response) throws Exception {
-		InputStream in = getClass().getClassLoader().getResourceAsStream(indexPage);
+		InputStream in = getClass().getClassLoader().getResourceAsStream(props.getIndex());
 		OutputStream out = response.getOutputStream();
 		IOUtils.copy(in, out);
 	}

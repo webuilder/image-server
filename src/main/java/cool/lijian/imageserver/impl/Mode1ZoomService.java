@@ -2,14 +2,18 @@ package cool.lijian.imageserver.impl;
 
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
-import java.io.File;
+import java.io.InputStream;
+import java.io.OutputStream;
 
+import javax.annotation.Resource;
 import javax.imageio.ImageIO;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 
+import cool.lijian.imageserver.ImageServerProperties;
+import cool.lijian.imageserver.MasterService;
+import cool.lijian.imageserver.ThumbnailService;
 import cool.lijian.imageserver.ZoomMode;
 import cool.lijian.imageserver.ZoomService;
 
@@ -23,10 +27,14 @@ public class Mode1ZoomService implements ZoomService {
 
 	private static final Logger logger = LoggerFactory.getLogger(Mode1ZoomService.class);
 
-	@Value("${image_server.storage_path}")
-	private String storagePath;
-	@Value("${image_server.zoom_path}")
-	private String zoomPath;
+	@Resource
+	private ImageServerProperties props;
+
+	@Resource
+	private MasterService masterService;
+
+	@Resource
+	private ThumbnailService thumbnailService;
 
 	@Override
 	public String zoom(String fileId, ZoomMode m, int w, int h) throws Exception {
@@ -35,14 +43,15 @@ public class Mode1ZoomService implements ZoomService {
 		if (h == 0)
 			h = w;
 		String newFileId = fileId + "." + m.value() + "_" + w + "_" + h;
-		File destFile = new File(zoomPath, newFileId);
-		if (destFile.exists()) {
+		// File destFile = new File(props.getZoomPath(), newFileId);
+		if (thumbnailService.exists(newFileId)) {
 			logger.debug("<{}> exist", newFileId);
 			return newFileId;
 		}
 
-		File srcFile = new File(storagePath, fileId);
-		BufferedImage srcImg = ImageIO.read(srcFile);
+		// File srcFile = new File(storagePath, fileId);
+		InputStream srcData = masterService.loadFile(fileId);
+		BufferedImage srcImg = ImageIO.read(srcData);
 		int srcW = srcImg.getWidth();
 		int srcH = srcImg.getHeight();
 
@@ -68,12 +77,15 @@ public class Mode1ZoomService implements ZoomService {
 		int lastIndex = fileId.lastIndexOf('.');
 		String type = fileId.substring(lastIndex + 1);
 
-		File destParentDir = destFile.getParentFile();
-		if (!destParentDir.exists()) {
-			destParentDir.mkdirs();
+		// File destParentDir = destFile.getParentFile();
+		// if (!destParentDir.exists()) {
+		// destParentDir.mkdirs();
+		// }
+		try (OutputStream out = thumbnailService.saveFile(newFileId)) {
+			ImageIO.write(destImg, type, out);
+			logger.debug("created <{}>", newFileId);
 		}
-		ImageIO.write(destImg, type, destFile);
-		logger.debug("created <{}>", newFileId);
+
 		return newFileId;
 	}
 

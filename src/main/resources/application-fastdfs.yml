@@ -1,9 +1,11 @@
 
 image-server:
   master-storage:
-    type: file
-    file:
-      path: ${user.home}/files/storage
+    type: fastdfs
+    fastdfs:
+      tracker-servers: 192.168.56.140:22122, 192.168.56.141:22122
+      group: group1
+      store-path: 0
   thumbnail-storage:
     type: file
     file:

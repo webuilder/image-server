@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>cool.lijian</groupId>
 	<artifactId>image-server</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.1.0</version>
 	<description>A common image server, support the zoom operation of image.</description>
 	<parent>
 		<groupId>org.springframework.boot</groupId>
@@ -19,6 +19,16 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-logging</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>com.github.penggle</groupId>
+			<artifactId>fastdfs-client-java</artifactId>
+			<version>1.27</version>
 		</dependency>
 	</dependencies>
 

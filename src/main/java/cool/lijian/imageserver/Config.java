@@ -1,5 +1,8 @@
 package cool.lijian.imageserver;
 
+import javax.annotation.Resource;
+
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -12,6 +15,7 @@ import cool.lijian.imageserver.impl.DefaultZoomService;
  *
  */
 @Configuration
+@EnableConfigurationProperties(ImageServerProperties.class)
 public class Config {
 
 	@Bean
