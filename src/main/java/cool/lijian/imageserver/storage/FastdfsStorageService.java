@@ -37,7 +37,6 @@ public class FastdfsStorageService implements StorageService {
 		storageServer = new StorageServer(addr.getAddress().getHostAddress(), addr.getPort(),
 				fastdfsConfig.getStorePath());
 
-		storageServer = null;
 		StorageClient1 storageClient = new StorageClient1(trackerServer, storageServer);
 		return storageClient;
 	}
