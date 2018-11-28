@@ -11,7 +11,7 @@ mvn package
 
 ## Run
 ```
-java -Dimage_server.storage_path=/path/to/original_images -Dimage_server.zoom_path=/path/to/zoomed_images image-server-x.y.z.jar
+java -jar image-server-x.y.z.jar --image-server.master-storage.file.path=/path/to/original_images --image-server.thumbnail-storage.file.path=/path/to/zoomed_images 
 ```
 
 ## Use it
