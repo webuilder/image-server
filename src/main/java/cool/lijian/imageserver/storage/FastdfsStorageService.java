@@ -27,17 +27,18 @@ public class FastdfsStorageService implements StorageService {
 		ClientGlobal.initByTrackers(fastdfsConfig.getTrackerServers());
 	}
 
-	private StorageClient1 getClient() throws Exception {
-		TrackerClient trackerClient = new TrackerClient();
-		TrackerServer trackerServer = trackerClient.getConnection();
-		StorageServer storageServer = trackerClient.getStoreStorage(trackerServer, fastdfsConfig.getGroup());
-		InetSocketAddress addr = storageServer.getInetSocketAddress();
-		log.debug("Use storageServer:  address = {}, group = {}, storePath = {}", addr, fastdfsConfig.getGroup(),
-				fastdfsConfig.getStorePath());
-		storageServer = new StorageServer(addr.getAddress().getHostAddress(), addr.getPort(),
-				fastdfsConfig.getStorePath());
+	private static ThreadLocal<StorageClient1> holder = new ThreadLocal<StorageClient1>();
 
-		StorageClient1 storageClient = new StorageClient1(trackerServer, storageServer);
+	private StorageClient1 getClient() throws Exception {
+		StorageClient1 storageClient = holder.get();
+		if (storageClient == null) {
+			TrackerClient trackerClient = new TrackerClient();
+			TrackerServer trackerServer = trackerClient.getConnection();
+			StorageServer storageServer = null;
+
+			storageClient = new StorageClient1(trackerServer, storageServer);
+			holder.set(storageClient);
+		}
 		return storageClient;
 	}
 
@@ -68,7 +69,7 @@ public class FastdfsStorageService implements StorageService {
 		if (index >= 0) {
 			suffix = originalFilename.substring(index + 1);
 		}
-		String fileId = client.upload_file1(data, suffix, null);
+		String fileId = client.upload_file1(fastdfsConfig.getGroup(), data, suffix, null);
 		return fileId;
 	}
 }

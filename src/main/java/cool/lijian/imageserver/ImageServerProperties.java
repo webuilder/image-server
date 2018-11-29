@@ -40,6 +40,5 @@ public class ImageServerProperties {
 
 		private String group;
 
-		private int storePath;
 	}
 }
