@@ -14,6 +14,8 @@ import javax.imageio.ImageIO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.drew.imaging.FileType;
+import com.drew.imaging.FileTypeDetector;
 import com.drew.imaging.ImageMetadataReader;
 import com.drew.metadata.Metadata;
 import com.drew.metadata.exif.ExifIFD0Directory;
@@ -57,26 +59,30 @@ public class Mode1ZoomService implements ZoomService {
 		}
 
 		InputStream srcData = masterService.loadFile(fileId);
-		BufferedInputStream bufIn = new BufferedInputStream(srcData, 1024 * 100);
-		bufIn.mark(Integer.MAX_VALUE);
+		BufferedInputStream bufIn = new BufferedInputStream(srcData, 1024 * 1024);
 
-		Metadata metadata = ImageMetadataReader.readMetadata(bufIn);
-
-		bufIn.reset();
-		BufferedImage originalImage = ImageIO.read(bufIn);
-
-		ExifIFD0Directory exifIFD0Directory = metadata.getFirstDirectoryOfType(ExifIFD0Directory.class);
-		JpegDirectory jpegDirectory = (JpegDirectory) metadata.getFirstDirectoryOfType(JpegDirectory.class);
+		FileType ft = FileTypeDetector.detectFileType(bufIn);
 
 		BufferedImage srcImg;
-		if (exifIFD0Directory != null && jpegDirectory != null) {
+
+		if (ft == FileType.Jpeg) {
+			bufIn.mark(Integer.MAX_VALUE);
+			Metadata metadata = ImageMetadataReader.readMetadata(bufIn);
+
+			bufIn.reset();
+			BufferedImage originalImage = ImageIO.read(bufIn);
+
+			ExifIFD0Directory exifIFD0Directory = metadata.getFirstDirectoryOfType(ExifIFD0Directory.class);
+			JpegDirectory jpegDirectory = (JpegDirectory) metadata.getFirstDirectoryOfType(JpegDirectory.class);
+
 			// JPEG with orientation
 			int orientation = 1;
-			try {
-				orientation = exifIFD0Directory.getInt(ExifIFD0Directory.TAG_ORIENTATION);
-			} catch (Exception ex) {
-				ex.printStackTrace();
-			}
+			if (exifIFD0Directory != null && jpegDirectory != null)
+				try {
+					orientation = exifIFD0Directory.getInt(ExifIFD0Directory.TAG_ORIENTATION);
+				} catch (Exception ex) {
+					ex.printStackTrace();
+				}
 
 			int width = jpegDirectory.getImageWidth();
 			int height = jpegDirectory.getImageHeight();
@@ -128,7 +134,7 @@ public class Mode1ZoomService implements ZoomService {
 
 		} else {
 			// JPEG without orientaion, or not a JPEG
-			srcImg = originalImage;
+			srcImg = ImageIO.read(bufIn);
 		}
 
 		int srcW = srcImg.getWidth();
