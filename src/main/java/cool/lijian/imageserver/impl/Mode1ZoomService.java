@@ -57,70 +57,80 @@ public class Mode1ZoomService implements ZoomService {
 		}
 
 		InputStream srcData = masterService.loadFile(fileId);
-		BufferedInputStream bufIn = new BufferedInputStream(srcData);
+		BufferedInputStream bufIn = new BufferedInputStream(srcData, 1024 * 100);
 		bufIn.mark(Integer.MAX_VALUE);
 
 		Metadata metadata = ImageMetadataReader.readMetadata(bufIn);
+
+		bufIn.reset();
+		BufferedImage originalImage = ImageIO.read(bufIn);
+
 		ExifIFD0Directory exifIFD0Directory = metadata.getFirstDirectoryOfType(ExifIFD0Directory.class);
 		JpegDirectory jpegDirectory = (JpegDirectory) metadata.getFirstDirectoryOfType(JpegDirectory.class);
 
-		int orientation = 1;
-		try {
-			orientation = exifIFD0Directory.getInt(ExifIFD0Directory.TAG_ORIENTATION);
-		} catch (Exception ex) {
-			ex.printStackTrace();
+		BufferedImage srcImg;
+		if (exifIFD0Directory != null && jpegDirectory != null) {
+			// JPEG with orientation
+			int orientation = 1;
+			try {
+				orientation = exifIFD0Directory.getInt(ExifIFD0Directory.TAG_ORIENTATION);
+			} catch (Exception ex) {
+				ex.printStackTrace();
+			}
+
+			int width = jpegDirectory.getImageWidth();
+			int height = jpegDirectory.getImageHeight();
+
+			AffineTransform affineTransform = new AffineTransform();
+
+			switch (orientation) {
+			case 1:
+				break;
+			case 2: // Flip X
+				affineTransform.scale(-1.0, 1.0);
+				affineTransform.translate(-width, 0);
+				break;
+			case 3: // PI rotation
+				affineTransform.translate(width, height);
+				affineTransform.rotate(Math.PI);
+				break;
+			case 4: // Flip Y
+				affineTransform.scale(1.0, -1.0);
+				affineTransform.translate(0, -height);
+				break;
+			case 5: // - PI/2 and Flip X
+				affineTransform.rotate(-Math.PI / 2);
+				affineTransform.scale(-1.0, 1.0);
+				break;
+			case 6: // -PI/2 and -width
+				affineTransform.translate(height, 0);
+				affineTransform.rotate(Math.PI / 2);
+				break;
+			case 7: // PI/2 and Flip
+				affineTransform.scale(-1.0, 1.0);
+				affineTransform.translate(-height, 0);
+				affineTransform.translate(0, width);
+				affineTransform.rotate(3 * Math.PI / 2);
+				break;
+			case 8: // PI / 2
+				affineTransform.translate(0, width);
+				affineTransform.rotate(3 * Math.PI / 2);
+				break;
+			default:
+				break;
+			}
+
+			AffineTransformOp affineTransformOp = new AffineTransformOp(affineTransform,
+					AffineTransformOp.TYPE_BILINEAR);
+
+			srcImg = new BufferedImage(originalImage.getHeight(), originalImage.getWidth(), originalImage.getType());
+			srcImg = affineTransformOp.filter(originalImage, srcImg);
+
+		} else {
+			// JPEG without orientaion, or not a JPEG
+			srcImg = originalImage;
 		}
 
-		int width = jpegDirectory.getImageWidth();
-		int height = jpegDirectory.getImageHeight();
-
-		AffineTransform affineTransform = new AffineTransform();
-
-		switch (orientation) {
-		case 1:
-			break;
-		case 2: // Flip X
-			affineTransform.scale(-1.0, 1.0);
-			affineTransform.translate(-width, 0);
-			break;
-		case 3: // PI rotation
-			affineTransform.translate(width, height);
-			affineTransform.rotate(Math.PI);
-			break;
-		case 4: // Flip Y
-			affineTransform.scale(1.0, -1.0);
-			affineTransform.translate(0, -height);
-			break;
-		case 5: // - PI/2 and Flip X
-			affineTransform.rotate(-Math.PI / 2);
-			affineTransform.scale(-1.0, 1.0);
-			break;
-		case 6: // -PI/2 and -width
-			affineTransform.translate(height, 0);
-			affineTransform.rotate(Math.PI / 2);
-			break;
-		case 7: // PI/2 and Flip
-			affineTransform.scale(-1.0, 1.0);
-			affineTransform.translate(-height, 0);
-			affineTransform.translate(0, width);
-			affineTransform.rotate(3 * Math.PI / 2);
-			break;
-		case 8: // PI / 2
-			affineTransform.translate(0, width);
-			affineTransform.rotate(3 * Math.PI / 2);
-			break;
-		default:
-			break;
-		}
-
-		AffineTransformOp affineTransformOp = new AffineTransformOp(affineTransform, AffineTransformOp.TYPE_BILINEAR);
-		bufIn.reset();
-		
-		BufferedImage originalImage = ImageIO.read(bufIn);
-		
-		BufferedImage srcImg = new BufferedImage(originalImage.getHeight(), originalImage.getWidth(), originalImage.getType());
-		srcImg = affineTransformOp.filter(originalImage, srcImg);
-        
 		int srcW = srcImg.getWidth();
 		int srcH = srcImg.getHeight();
 
